@@ -120,7 +120,10 @@ export const updateTag = async (req, res) => {
         const { _id, ...updatedData } = req.body;
         const updatedTag = await TagModel.findByIdAndUpdate(tagId, updatedData, {new : true});
         
-        res.status(200).json({ message: "tag updated successfully", updatedTag });
+        res.status(200).json({ 
+          success: true,
+          message: "tag updated successfully", 
+          updatedTag });
       } else {
         res.status(500).json({ message: "tag not exists" });
       }
