@@ -20,7 +20,8 @@ export const addBlog = async (req, res) => {
     date,
     metaTitle,
     metaDesc,
-    show  
+    show ,
+    showComments 
   } = req?.body;
   const { id } = req.auth;
   try {
@@ -53,7 +54,8 @@ export const addBlog = async (req, res) => {
           date: date,
           metaTitle: metaTitle,
           metaDesc: metaDesc,
-          show: show 
+          show: show,
+          showComments: showComments
         });
 
         const saveBlog = await newBlog.save();
@@ -72,16 +74,19 @@ export const addBlog = async (req, res) => {
 };
 
 export const getAllBlogs = async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const pageSize = parseInt(req.query.pageSize) || 10;
 
-  // Calculate start and end indexes for the paginated data
-  const startIndex = (page - 1) * pageSize;
-  const endIndex = page * pageSize;
 
   try {
     const blogs = await BlogModel.find();
     const sortedData = blogs?.sort((a, b) => b.createdAt - a.createdAt);
+
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || sortedData?.length;
+  
+    // Calculate start and end indexes for the paginated data
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = page * pageSize;
+
     const paginatedData = sortedData.slice(startIndex, endIndex);
     const totalPages = Math.ceil(sortedData?.length / pageSize);
     
@@ -188,6 +193,47 @@ export const updateBlogStatus = async (req, res) => {
   }
 };
 
+export const updateBlogCommentStatus = async (req, res) => {
+  const blogId = req.query.blogId;
+  const {id} = req.auth
+  try {
+    const user = await AdminModel.findOne(
+      { _id: id},
+      { isAdmin: 1 }
+    );
+
+    if (user?.isAdmin) {
+      const blog = await BlogModel.findById(blogId);
+      if (blog) {
+        
+        let showComments = blog.showComments ? false : true;
+        const updatedBlog = await BlogModel.findByIdAndUpdate(blogId,{showComments});
+        
+        // const updatedBlogUser = await blogUser.updateOne({
+        //   $set: req.body,
+        //   new: true
+        // })
+
+        const data = {
+          success: true,
+          message: "blog comment status updated successfully", 
+          updatedBlog 
+        }
+
+        res
+          .status(200)
+          .json({data });
+      } else {
+        res.status(500).json({ message: "blog not exists" });
+      }
+    } else {
+      res.status(500).json({ message: "access denied" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const updateBlog = async (req, res) => {
   const blogId = req.query.blogId;
   const {id} = req.auth
@@ -215,7 +261,7 @@ export const updateBlog = async (req, res) => {
         }
 
         const updatedBlogDetails = {
-          image: blogImage ? IMG_URL + image : updatedData?.image ,
+          image: blogImage ? IMG_URL + blogImage : updatedData?.image ,
           title: updatedData?.title, 
           shortDesc: updatedData?.shortDesc, 
           description: updatedData?.description, 
@@ -286,28 +332,29 @@ export const getSingleBlog = async (req, res) => {
   }
 };
 
-export const searchBlogUser = async (req, res) => {
+export const searchBlog = async (req, res) => {
   const searchValue = req.query.search;
-
+  const regex = new RegExp(searchValue, 'i');
   try {
-    const blogUser = await BlogUserModel.find();
+    const blogs = await BlogModel.find({
+      $or : [
+        {title: regex},
+        {categories: {$in: [regex]}},
+        {tags: {$in: [regex]}}
+      ]
+    });
 
-    const filteredUsers = blogUser?.filter(user=> user?.userName?.toLowerCase()?.includes(searchValue)?.toLowerCase())
-    if (filteredUsers) {
-      // console.log(blogUser)
-      // const data = {
-      //   ...blogUser?._doc,
-      //   coverPicture : blogUser?.coverPicture ? IMG_URL + blogUser?.coverPicture : '',
-      //   profilePicture : blogUser?.profilePicture ? IMG_URL + blogUser?.profilePicture : ''
-      // }
+    if (blogs?.length > 0) {
+        const result = {
+          data: blogs,
+          success: true,
+          mesage: 'Blog found successfully'
+        };
+        res.status(200).json(result);
+    }
 
-      const result = {
-        data: filteredUsers,
-        success: true,
-      };
-      res.status(200).json(result);
-    } else {
-      res.status(500).json({ message: "blog user not found" });
+else {
+      res.status(500).json({ message: "blog not found" });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });

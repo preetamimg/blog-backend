@@ -45,16 +45,19 @@ export const addTag = async (req, res) => {
 };
 
 export const getAllTags = async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const pageSize = parseInt(req.query.pageSize) || 10;
-
-    // Calculate start and end indexes for the paginated data
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = page * pageSize;
     
   try {
     const tags = await TagModel.find();
     const sortedData = tags?.sort((a,b)=>b.createdAt - a.createdAt)
+
+    
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || sortedData?.length;
+
+    // Calculate start and end indexes for the paginated data
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = page * pageSize;
+
     const paginatedData = sortedData.slice(startIndex, endIndex);
     const totalPages = Math.ceil(sortedData?.length / pageSize)
     const result = {

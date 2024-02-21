@@ -50,7 +50,7 @@ export const loginAdmin = async (req, res)=> {
       if(validity) {
           const token = jwt.sign({
             id: user._id
-          }, 'BLOG', {expiresIn: '10h'})
+          }, 'BLOG',)
         res.status(200).json({user, token, success: true})
       } else {
         res.status(400).json({

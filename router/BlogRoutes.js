@@ -1,6 +1,6 @@
 import express  from "express";
 import authMiddleware from "../middleware/AuthMiddleware.js";
-import { addBlog, deleteBlog, getAllBlogs, getSingleBlog, updateBlogStatus } from "../controller/BlogController.js";
+import { addBlog, deleteBlog, getAllBlogs, getSingleBlog, searchBlog, updateBlog, updateBlogCommentStatus, updateBlogStatus } from "../controller/BlogController.js";
 import uploadMiddleware from "../middleware/UploadImage.js";
 
 const router = express.Router()
@@ -12,8 +12,12 @@ uploadMiddleware.fields([
 router.get('/getAllBlogs', getAllBlogs)
 router.get('/getSingleBlog', getSingleBlog)
 router.put('/updateBlogStatus', authMiddleware, updateBlogStatus)
+router.put('/updateBlogCommentStatus', authMiddleware, updateBlogCommentStatus)
 router.delete('/deleteBlog', authMiddleware, deleteBlog)
-// router.put('/updateTag', authMiddleware, updateTag)
+router.put('/updateBlog', authMiddleware, uploadMiddleware.fields([
+  { name: "image", maxCount: 1 },
+]), updateBlog)
+router.get('/searchBlog', searchBlog)
 
 
 
