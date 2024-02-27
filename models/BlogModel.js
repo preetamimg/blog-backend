@@ -56,6 +56,10 @@ const blogSchema = new mongoose.Schema({
   showComments : {
     type: Boolean,
     default: true
+  },
+  bannerBlog : {
+    type: Boolean,
+    default: true
   }
 
 },

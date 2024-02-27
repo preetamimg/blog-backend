@@ -21,7 +21,8 @@ export const addBlog = async (req, res) => {
     metaTitle,
     metaDesc,
     show ,
-    showComments 
+    showComments ,
+    bannerBlog
   } = req?.body;
   const { id } = req.auth;
   try {
@@ -55,7 +56,8 @@ export const addBlog = async (req, res) => {
           metaTitle: metaTitle,
           metaDesc: metaDesc,
           show: show,
-          showComments: showComments
+          showComments: showComments,
+          bannerBlog : bannerBlog
         });
 
         const saveBlog = await newBlog.save();
@@ -176,6 +178,48 @@ export const updateBlogStatus = async (req, res) => {
         const data = {
           success: true,
           message: "blog status updated successfully", 
+          updatedBlog 
+        }
+
+        res
+          .status(200)
+          .json({data });
+      } else {
+        res.status(500).json({ message: "blog not exists" });
+      }
+    } else {
+      res.status(500).json({ message: "access denied" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+export const updateBlogBannerStatus = async (req, res) => {
+  const blogId = req.query.blogId;
+  const {id} = req.auth
+  try {
+    const user = await AdminModel.findOne(
+      { _id: id},
+      { isAdmin: 1 }
+    );
+
+    if (user?.isAdmin) {
+      const blog = await BlogModel.findById(blogId);
+      if (blog) {
+        
+        let bannerBlog = blog.bannerBlog ? false : true;
+        const updatedBlog = await BlogModel.findByIdAndUpdate(blogId,{bannerBlog});
+        
+        // const updatedBlogUser = await blogUser.updateOne({
+        //   $set: req.body,
+        //   new: true
+        // })
+
+        const data = {
+          success: true,
+          message: "blog banner status updated successfully", 
           updatedBlog 
         }
 
@@ -378,3 +422,32 @@ else {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+// front end apis
+
+// get banner
+
+export const getBannerBlogs = async( req, res)=> {
+  try {
+    const blogs = await BlogModel.find({bannerBlog : true})
+    if(blogs) {
+      const pageSize = parseInt(req.query.pageSize) || sortedData?.length;
+      const shuffledBlogs = blogs.sort(() => Math.random() - 0.5);
+      const limitedData = shuffledBlogs.slice(0, pageSize)
+      const result = {
+        data : limitedData,
+        message: 'banner blogs found successfully',
+        status: true
+      }
+      res.status(200).json(result)
+    } else {
+      res.status(500).json({
+        message: 'no blogs found'
+      })
+    }
+  } catch (error) {
+    
+  }
+}
+

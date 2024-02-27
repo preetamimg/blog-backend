@@ -1,14 +1,14 @@
 import AdminModel from "../models/AdminModel.js";
+import BlogModel from "../models/BlogModel.js";
 import CategoryModel from "../models/Category.js";
 import UserModel from "../models/UserModel.js";
+import {IMG_URL} from './../constants.js'
 
 export const addCategory = async (req, res) => {
   const { categoryName } = req.body;
   const {id} = req.auth
 
-  const newCategory = new CategoryModel({
-    categoryName: categoryName,
-  });
+
 
   try {
     const user = await AdminModel.findOne(
@@ -26,8 +26,19 @@ export const addCategory = async (req, res) => {
         categoryName: categoryName,
       });
       if (ifCategoryExists) {
+        const { image } = req?.files;
+        fs.unlink(image[0].path, (err) => {
+          if (err) console.log("error while removing image");
+          console.log("image removed successfully.");
+        });
         res.status(500).json({ message: "category already exists" });
       } else {
+        const image = req?.files["image"]?.[0]?.filename ? req?.files["image"]?.[0]?.filename : '';
+        
+        const newCategory = new CategoryModel({
+          categoryName: categoryName,
+          image: IMG_URL + image ,
+        });
         const saveCategory = await newCategory.save();
         const data = {
           success: true,
@@ -46,10 +57,21 @@ export const addCategory = async (req, res) => {
 export const getAllCategories = async (req, res) => {
     
   try {
-    const categories = await CategoryModel.find();
-    const sortedData = categories?.sort((a,b)=>b.createdAt - a.createdAt)
 
-    
+    const allBlogs = await BlogModel.find()
+
+    const categories = await CategoryModel.find();
+
+    const categoriesWithCount = categories.map(category=>{
+      const categoryBlogs = allBlogs.filter(blog=>blog?.categories?.includes(category?.categoryName));
+      return {
+        ...category?._doc,
+        blogCount: categoryBlogs.length,
+      }
+    })
+
+    const sortedData = categoriesWithCount?.sort((a,b)=>b.createdAt - a.createdAt)
+
     const page = parseInt(req.query.page) || 1;
     const pageSize = parseInt(req.query.pageSize) || sortedData?.length;
 
